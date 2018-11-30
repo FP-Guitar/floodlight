@@ -1,11 +1,11 @@
-package net.sdnlab.task31;
+package net.sdnlab.ex3;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.projectfloodlight.openflow.types.IPv4Address;
 import org.projectfloodlight.openflow.types.MacAddress;
 
-import net.sdnlab.task31.ARPEntry;
+import net.sdnlab.ex3.ARPEntry;
 public class ARPCache {
 		// Use Map instead of Arrays of entries for faster search
 		private static Map<IPv4Address, MacAddress> arpEntries = new HashMap<IPv4Address,MacAddress>();

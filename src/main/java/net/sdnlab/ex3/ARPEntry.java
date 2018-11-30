@@ -1,4 +1,4 @@
-package net.sdnlab.task31;
+package net.sdnlab.ex3;
 import org.projectfloodlight.openflow.types.MacAddress;
 import org.projectfloodlight.openflow.types.IPv4Address;
 public class ARPEntry {

@@ -1,4 +1,4 @@
-package net.sdn.task31;
+package net.sdn.ex3;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -7,8 +7,8 @@ import org.junit.Test;
 import org.projectfloodlight.openflow.types.IPv4Address;
 import org.projectfloodlight.openflow.types.MacAddress;
 
-import net.sdnlab.task31.ARPCache;
-import net.sdnlab.task31.ARPEntry;
+import net.sdnlab.ex3.ARPCache;
+import net.sdnlab.ex3.ARPEntry;
 public class ARPCacheTest {
 	@Test
 	public void testBasics() {
