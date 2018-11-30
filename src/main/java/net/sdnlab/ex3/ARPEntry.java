@@ -11,13 +11,12 @@ public class ARPEntry {
 	 */
 	public static ARPEntry of(IPv4Address ipAddress, MacAddress macAddress) {
 		ARPEntry entry = new ARPEntry();
-		entry.setIpAddress(ipAddress);;
+		entry.setIpAddress(ipAddress);
 		entry.setMacAddress(macAddress);
 		return entry;
 	}
 
 
-	
 	public IPv4Address getIpAddress() {
 		return ipAddress;
 	}
