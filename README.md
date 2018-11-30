@@ -1,3 +1,6 @@
+FORK FOR A UNIVERSITY PROJECT, DO NOT EXPECT TO FIND ANYTHING USEFUL HERE ;)
+============================================================================
+
 Floodlight OpenFlow Controller (OSS)
 ====================================
 
