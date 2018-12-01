@@ -46,6 +46,11 @@ public class ARPEntry {
 		}
 	}
 	
+	@Override
+	public String toString() {
+		return "[ " + this.macAddress.toString()+", " + this.ipAddress.toString() + " ]";  
+	}
+	
 	private ARPEntry () {
 	}
 		
