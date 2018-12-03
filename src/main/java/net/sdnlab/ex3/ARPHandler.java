@@ -60,7 +60,9 @@ public class ARPHandler implements IOFMessageListener {
 	private Map <IPv4Address, HostInfo> switches = new HashMap<IPv4Address, HostInfo>();
 	
 	private ARPCache arpCache = new ARPCache();
-	
+	public void resetCache() {
+		this.arpCache.reset();
+	}
 	
 	public ARPHandler( IOFSwitchService switchService) {
 		// fill topology info by hand
@@ -132,13 +134,12 @@ public class ARPHandler implements IOFMessageListener {
 	
 	private void handleARPRequest(IOFSwitch sw, OFMessage msg, FloodlightContext cntx, ARP payload ) {
 		logger.info("Handling ARPRequest from " +  payload.getSenderProtocolAddress() );
-		// first check, if we want to store the sender
+
 		ARPEntry requestSender = ARPEntry.of(payload.getSenderProtocolAddress(), payload.getSenderHardwareAddress());
+		// check if we want to store the request sender
 		if( !arpCache.contains(payload.getSenderProtocolAddress()) ) {
-			
 			arpCache.storeEntry(requestSender);
-			logger.info("Stored " + requestSender );
-		}
+		} 
 		
 		if( arpCache.contains(payload.getTargetProtocolAddress())) {
 			ARPEntry lookedForHost = arpCache.getEntryFromIP(payload.getTargetProtocolAddress());
@@ -218,7 +219,7 @@ public class ARPHandler implements IOFMessageListener {
 	
 	private void handleARPReply(IOFSwitch sw, OFMessage msg, FloodlightContext cnt, ARP payload  ) {
 		if( ! arpCache.contains(payload.getSenderProtocolAddress() )) {
-			arpCache.storeEntry( ARPEntry.of(payload.getSenderProtocolAddress(), payload.getTargetHardwareAddress()));
+			arpCache.storeEntry( ARPEntry.of(payload.getSenderProtocolAddress(), payload.getSenderHardwareAddress()));
 		} 
 		if( arpCache.contains( payload.getTargetProtocolAddress() )) {
 			ARPEntry lookedForHost = arpCache.getEntryFromIP(payload.getSenderProtocolAddress());
@@ -230,5 +231,4 @@ public class ARPHandler implements IOFMessageListener {
 			logger.error("Receiving an ARP Reply to an Request we have not Seen:\n" + payload);
 		}
 	}
-
 }

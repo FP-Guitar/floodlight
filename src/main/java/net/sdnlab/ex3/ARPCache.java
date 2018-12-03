@@ -4,9 +4,15 @@ import java.util.Map;
 
 import org.projectfloodlight.openflow.types.IPv4Address;
 import org.projectfloodlight.openflow.types.MacAddress;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import net.sdnlab.ex3.ARPEntry;
 public class ARPCache {
+		private static Logger logger;
+		public ARPCache() {
+			logger = LoggerFactory.getLogger(ARPCache.class.getName());
+		}
 		// Use Map instead of Arrays of entries for faster search
 		private static Map<IPv4Address, MacAddress> arpEntries = new HashMap<IPv4Address,MacAddress>();
 		/**
@@ -38,6 +44,7 @@ public class ARPCache {
 		 * @param entry To store
 		 */
 		public synchronized void storeEntry( ARPEntry entry ) {
+			logger.info("Stored " + entry);
 			arpEntries.put(entry.getIpAddress(), entry.getMacAddress());
 		}
 		
@@ -46,10 +53,17 @@ public class ARPCache {
 		 * Can not fail, if Entry does not exist, does nothing.
 		 * @param ipAddress Of the ARPEntry to delete
 		 */
-		public synchronized void deleteEntryByIp( IPv4Address ipAddress ) {
+		public synchronized void deleteEntryByIp( IPv4Address ipAddress ) {		
 			if ( arpEntries.containsKey(ipAddress) ) {
+				logger.info("Delete " + arpEntries.get(ipAddress));
 				arpEntries.remove(ipAddress);
+				
 			}
+		}
+		
+		public synchronized void reset() {
+			logger.info("Reset cache (clear)");
+			arpEntries.clear();
 		}
 		
 		
