@@ -47,6 +47,7 @@ public class ARPHandler implements IOFMessageListener {
 		private DatapathId switchId;
 		private int outPutPort;
 		
+		@SuppressWarnings("unused")
 		public DatapathId getSwitchId() {
 			return switchId;
 		}

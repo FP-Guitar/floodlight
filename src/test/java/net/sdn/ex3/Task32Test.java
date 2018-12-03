@@ -24,10 +24,7 @@ public class Task32Test {
 		DatapathId S3 = DatapathId.of("3");
 		DatapathId S4 = DatapathId.of("4");
 		DatapathId S5 = DatapathId.of("5");
-		
-		
-		
-		
+			
 		Set<Link> linksroot = new HashSet<Link>();
 		Set<Link> linksS1 = new HashSet<Link>();
 		Set<Link> linksS2 = new HashSet<Link>();

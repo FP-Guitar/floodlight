@@ -16,7 +16,7 @@ public class Dijkstra {
 	/*
      * Dijkstra that calculates destination rooted trees over the entire topology.
      */
-	private static final Logger log = LoggerFactory.getLogger(Dijkstra.class.getName());
+	private static final Logger log = LoggerFactory.getLogger(Dijkstra.class);
     public static final int MAX_LINK_WEIGHT = 10000;
     public static final int MAX_PATH_WEIGHT = Integer.MAX_VALUE - MAX_LINK_WEIGHT - 1;
     public static BroadcastTree compute(Map<DatapathId, Set<Link>> links, DatapathId root,
