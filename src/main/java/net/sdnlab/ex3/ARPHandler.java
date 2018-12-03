@@ -146,12 +146,14 @@ public class ARPHandler implements IOFMessageListener {
 			ARPEntry destination = requestSender;
 			Ethernet packetToInject = createARPPacket( lookedForHost, destination, ArpOpcode.REPLY);
 			boolean success = injectPacketForHost(destination.getIpAddress(), packetToInject);
-			logger.info("Inject reply\n----------" + packetToInject  + "\n----------was success " + success );
+			logger.info("Inject reply::was success " + success );
+			logger.debug("Injected Packet: " + packetToInject);
 		} else {
 			ARPEntry destination = ARPEntry.of( payload.getTargetProtocolAddress(), MacAddress.of("FF:FF:FF:FF:FF:FF"));
 			Ethernet packetToInject = createARPPacket(requestSender, destination, ArpOpcode.REQUEST);
 			boolean success = injectPacketForHost(destination.getIpAddress(), packetToInject);
-			logger.info("Inject request\n--------------" + packetToInject  + "\n-----------\nwas success " + success );
+			logger.info("Inject request::was success " + success );
+			logger.debug("Injected Packet: " + packetToInject);
 		}
 	}
 	
@@ -226,7 +228,8 @@ public class ARPHandler implements IOFMessageListener {
 			ARPEntry destination = arpCache.getEntryFromIP(payload.getTargetProtocolAddress() );
 			Ethernet packetToInject = createARPPacket( lookedForHost, destination, ArpOpcode.REPLY);
 			boolean success = injectPacketForHost(destination.getIpAddress(), packetToInject);
-			logger.info("Inject reply\n----------" + packetToInject  + "\n----------\nwas success " + success );
+			logger.info("Inject reply::was success " + success );
+			logger.debug("Injected Packet: " + packetToInject);
 		} else {
 			logger.error("Receiving an ARP Reply to an Request we have not Seen:\n" + payload);
 		}
