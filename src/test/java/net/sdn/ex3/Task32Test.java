@@ -77,9 +77,16 @@ public class Task32Test {
 		topology.put(S5, linksS5);
 		
 		BroadcastTree tree = compute(topology, root, linkCost, false);	
-		for( DatapathId link : tree.getLinks().keySet() ) {
-			System.out.println(tree.getLinks().get(link));
+		
+		Link nextLink = null;
+		DatapathId nextNode = S5;
+		while ( nextNode != root ) {
+			System.out.println(nextNode);
+			nextLink = tree.getTreeLink(nextNode);
+			System.out.println(nextLink);
+			nextNode = nextLink.getSrc();
 		}
+		System.out.println(nextNode);
 	}
 
 
