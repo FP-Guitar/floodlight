@@ -19,6 +19,7 @@ public class Dijkstra {
 	private static final Logger log = LoggerFactory.getLogger(Dijkstra.class);
     public static final int MAX_LINK_WEIGHT = 10000;
     public static final int MAX_PATH_WEIGHT = Integer.MAX_VALUE - MAX_LINK_WEIGHT - 1;
+    
     public static BroadcastTree compute(Map<DatapathId, Set<Link>> links, DatapathId root,
             Map<Link, Integer> linkCost,
             boolean isDstRooted) {
@@ -38,7 +39,6 @@ public class Dijkstra {
         cost.put(root, 0);
 
         //log.debug("{}", links);
-
         while (nodeq.peek() != null) {
             NodeDist n = nodeq.poll();
             DatapathId cnode = n.getNode();

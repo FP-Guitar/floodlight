@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 
+import org.projectfloodlight.openflow.protocol.OFType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,11 +17,12 @@ import net.floodlightcontroller.core.module.IFloodlightService;
 import net.floodlightcontroller.topology.ITopologyService;
 
 public class Task32 implements IFloodlightModule {
-	private static Logger logger;
+	private Logger logger;
 	private IOFSwitchService switchService;
 	private IFloodlightProviderService floodlightProviderService;
 	private ITopologyService topologyService;
 	private Task32StaticFlows staticFlows;
+	private ReactiveRoutingModule reactiveRouting;
 	@Override
 	public Collection<Class<? extends IFloodlightService>> getModuleServices() {
 		// TODO Auto-generated method stub
@@ -49,12 +51,15 @@ public class Task32 implements IFloodlightModule {
 		this.switchService = context.getServiceImpl(IOFSwitchService.class);
 		this.floodlightProviderService = context.getServiceImpl(IFloodlightProviderService.class);
 		this.topologyService = context.getServiceImpl(ITopologyService.class);
+		this.reactiveRouting = new ReactiveRoutingModule(this.topologyService, this.switchService);
 	}
 
 	@Override
 	public void startUp(FloodlightModuleContext context) throws FloodlightModuleException {
 		logger.info("Module Task32 loaded");
 		this.staticFlows = new Task32StaticFlows(this.switchService);
+		
+		this.floodlightProviderService.addOFMessageListener(OFType.PACKET_IN, this.reactiveRouting);
 	}
 
 }

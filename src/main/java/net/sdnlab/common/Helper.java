@@ -30,10 +30,14 @@ public class Helper{
 	}*/ 
 	
 	public static boolean updateSwitch (IOFSwitch switchToUpdate, IPv4Address ipToMatch,int outputPort) {
-		return updateSwitch( switchToUpdate, ipToMatch, outputPort, U64.of(0xcafe), 32700);
+		return updateSwitch( switchToUpdate, ipToMatch, outputPort, U64.of(0xcafe), 32700, 0);
 	}
 	
-	public static boolean updateSwitch(IOFSwitch switchToUpdate, IPv4Address ipToMatch,int outputPort, U64 flowNumber, int flowPriority) {	
+	public static boolean updateSwitch (IOFSwitch switchToUpdate, IPv4Address ipToMatch,int outputPort,  int idleTimeout ) {
+		return updateSwitch(switchToUpdate, ipToMatch, outputPort, U64.of(0xcafe), 32700, idleTimeout );
+	}
+	
+	public static boolean updateSwitch(IOFSwitch switchToUpdate, IPv4Address ipToMatch,int outputPort, U64 flowNumber, int flowPriority, int idleTimeout) {	
 		// we want to use a factory, definitely matching to the switch
 		// so instead of using generic factory with version, we 
 		// always use the factory provided by the switch
@@ -59,6 +63,7 @@ public class Helper{
 		OFFlowAdd flowAdd = factoryToUse.buildFlowAdd()
 				.setCookie(flowNumber)
 				.setPriority(flowPriority)
+				.setIdleTimeout(idleTimeout)
 				.setMatch(match)
 				.setActions(actionList)
 				.build();

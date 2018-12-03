@@ -51,7 +51,7 @@ public class Task32StaticFlows implements IOFSwitchListener {
 				boolean success = true;
 				success  = success && updateSwitch( switchToUpdate, IPv4Address.of("10.0.1.1"), 3);
 				success  = success && updateSwitch( switchToUpdate, IPv4Address.of("10.0.1.2"), 4);
-				return false;
+				return success;
 			}
 		});
 		
@@ -62,7 +62,7 @@ public class Task32StaticFlows implements IOFSwitchListener {
 				boolean success = true;
 				success  = success && updateSwitch( switchToUpdate, IPv4Address.of("10.0.1.3"), 3);
 				success  = success && updateSwitch( switchToUpdate, IPv4Address.of("10.0.1.4"), 4);
-				return false;
+				return success;
 			}
 		});
 		
@@ -73,7 +73,7 @@ public class Task32StaticFlows implements IOFSwitchListener {
 				boolean success = true;
 				success  = success && updateSwitch( switchToUpdate, IPv4Address.of("10.0.2.1"), 3);
 				success  = success && updateSwitch( switchToUpdate, IPv4Address.of("10.0.2.2"), 4);
-				return false;
+				return success;
 			}
 		});
 		
@@ -84,7 +84,7 @@ public class Task32StaticFlows implements IOFSwitchListener {
 				boolean success = true;
 				success  = success && updateSwitch( switchToUpdate, IPv4Address.of("10.0.2.3"), 3);
 				success  = success && updateSwitch( switchToUpdate, IPv4Address.of("10.0.2.4"), 4);
-				return false;
+				return success;
 			}
 		});
 		
@@ -92,14 +92,12 @@ public class Task32StaticFlows implements IOFSwitchListener {
 	}
 	@Override
 	public void switchAdded(DatapathId switchId) {
-		// TODO Auto-generated method stub
 
 	}
 
 	@Override
 	public void switchRemoved(DatapathId switchId) {
-		// TODO Auto-generated method stub
-
+		// we don't care
 	}
 
 	@Override
@@ -110,6 +108,7 @@ public class Task32StaticFlows implements IOFSwitchListener {
 			IOFSwitch switchToUse = switchService.getSwitch(switchId);
 			boolean success = staticFlows.get(switchId).update(switchToUse);
 			logger.info("Success: " + success);
+			
 		}
 
 	}
