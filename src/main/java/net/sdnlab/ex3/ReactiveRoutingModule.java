@@ -1,6 +1,7 @@
 package net.sdnlab.ex3;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -21,6 +22,7 @@ import org.projectfloodlight.openflow.types.EthType;
 import org.projectfloodlight.openflow.types.IPv4Address;
 import org.projectfloodlight.openflow.types.IpProtocol;
 import org.projectfloodlight.openflow.types.OFPort;
+import org.projectfloodlight.openflow.types.TableId;
 import org.projectfloodlight.openflow.types.TransportPort;
 import org.projectfloodlight.openflow.types.U64;
 import org.slf4j.Logger;
@@ -30,6 +32,7 @@ import net.floodlightcontroller.core.FloodlightContext;
 import net.floodlightcontroller.core.IFloodlightProviderService;
 import net.floodlightcontroller.core.IOFMessageListener;
 import net.floodlightcontroller.core.IOFSwitch;
+import net.floodlightcontroller.core.IListener.Command;
 import net.floodlightcontroller.core.internal.IOFSwitchService;
 import net.floodlightcontroller.linkdiscovery.Link;
 import net.floodlightcontroller.packet.Ethernet;
@@ -51,8 +54,11 @@ public class ReactiveRoutingModule implements IOFMessageListener {
 	private IOFSwitchService switchService;
 	private ILinkCostCalculator linkCostCalculator;
 	private int flowTimeOutInSeconds;
+	private long flowTimeOutInMillis;
 	private U64 flowCookie;
 	private int flowPriority;
+	private long flowCounter = 0;
+	private HashMap<SourceDestination, Long> lastSeenFlow;
 	/**
 	 * Class for representing a end-to-end connection
 	 * actually information is aequivalent to information typically
@@ -70,10 +76,69 @@ public class ReactiveRoutingModule implements IOFMessageListener {
 		
 		public IpProtocol protocol;
 		
+		
+		
 		@Override
 		public String toString() {
 			return "[Source: " + source +":"+sourcePort + ", Destination: " + destination +":"+destinationPort+"]";
 		}
+
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + getOuterType().hashCode();
+			result = prime * result + ((destination == null) ? 0 : destination.hashCode());
+			result = prime * result + ((destinationPort == null) ? 0 : destinationPort.hashCode());
+			result = prime * result + ((protocol == null) ? 0 : protocol.hashCode());
+			result = prime * result + ((source == null) ? 0 : source.hashCode());
+			result = prime * result + ((sourcePort == null) ? 0 : sourcePort.hashCode());
+			return result;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			SourceDestination other = (SourceDestination) obj;
+			if (!getOuterType().equals(other.getOuterType()))
+				return false;
+			if (destination == null) {
+				if (other.destination != null)
+					return false;
+			} else if (!destination.equals(other.destination))
+				return false;
+			if (destinationPort == null) {
+				if (other.destinationPort != null)
+					return false;
+			} else if (!destinationPort.equals(other.destinationPort))
+				return false;
+			if (protocol == null) {
+				if (other.protocol != null)
+					return false;
+			} else if (!protocol.equals(other.protocol))
+				return false;
+			if (source == null) {
+				if (other.source != null)
+					return false;
+			} else if (!source.equals(other.source))
+				return false;
+			if (sourcePort == null) {
+				if (other.sourcePort != null)
+					return false;
+			} else if (!sourcePort.equals(other.sourcePort))
+				return false;
+			return true;
+		}
+
+		private ReactiveRoutingModule getOuterType() {
+			return ReactiveRoutingModule.this;
+		}
+		
 	}
 	
 	public ReactiveRoutingModule(ITopologyService topologyService, IOFSwitchService switchService, ILinkCostCalculator linkCostCalculator) {
@@ -85,8 +150,10 @@ public class ReactiveRoutingModule implements IOFMessageListener {
 		this.switchService = switchService;
 		this.linkCostCalculator = linkCostCalculator;
 		this.flowTimeOutInSeconds = flowTimeOutInSeconds;
+		this.flowTimeOutInMillis = flowTimeOutInSeconds * 1000;
 		this.flowCookie = flowCookie;
 		this.flowPriority = flowPriority;
+		this.lastSeenFlow = new HashMap<SourceDestination, Long>();
 		log= LoggerFactory.getLogger( this.getClass() );
 		// Fill map of edge Switches (leaf nodes of tree)
 		edgeSwitches = new HashMap<IPv4Address, DatapathId>();
@@ -133,8 +200,8 @@ public class ReactiveRoutingModule implements IOFMessageListener {
 	public Command receive(IOFSwitch sw, OFMessage msg, FloodlightContext cntx) {
 		// check if we have a packet of the right type	
 		Ethernet eth = IFloodlightProviderService.bcStore.get(cntx, IFloodlightProviderService.CONTEXT_PI_PAYLOAD);
- 
-		if( eth.getEtherType().equals(EthType.IPv4)) {	
+	
+		if( eth.getEtherType().equals(EthType.IPv4)) {
 			IPv4 payload = (IPv4) eth.getPayload();
 			SourceDestination sourceDestination = getSourceDestination(payload);
 			
@@ -142,27 +209,49 @@ public class ReactiveRoutingModule implements IOFMessageListener {
 				// Maybe someone else is interrested....
 				return Command.CONTINUE;
 			}
+			if( checkIfFlowAlreadyInstalled(sourceDestination)) {
+				// flow is installed, but we have some packet in
+				// because of a fast sending process
+				injectPacketForHost(sourceDestination.destination, eth);
+				return Command.CONTINUE;
+			}
 			
 			BroadcastTree route = computeRoute(sourceDestination);
 			
 			boolean routeIsInstalled = installRoute(route, sourceDestination);
 			boolean packetIsInjected = false;
-			
+			Collection<TableId> tables = sw.getTables();
+	
 			if(routeIsInstalled) {
 				packetIsInjected = injectPacketForHost(sourceDestination.destination, eth);
 			}
 			
 			if( routeIsInstalled && packetIsInjected ) {
-				log.info("successfully handled " + sourceDestination );
+				log.info("#{} successfully handled {}",  ++flowCounter, sourceDestination );
+				lastSeenFlow.put(sourceDestination, System.currentTimeMillis() );
 			} else {
 				log.error("failed to handle " + sourceDestination + "route:" + routeIsInstalled +" packetinjectked:" + packetIsInjected);
 			}
-			
-			return Command.STOP;
-		} else {
-			return Command.CONTINUE;
-		}	
+		}
+		return Command.CONTINUE;
 	}
+	// sometimes when a process sends a lot of packets, like iperf
+	// we receive more than on packet on packet in before we have installed the flow
+	// this is to handle this
+	private boolean checkIfFlowAlreadyInstalled(SourceDestination sourceDestination) {
+		if( lastSeenFlow.containsKey(sourceDestination) ) {			
+			long currentTime = System.currentTimeMillis();
+			long lastSeenTime = lastSeenFlow.get(sourceDestination);
+			long diff = currentTime - lastSeenTime;
+			if( diff < (flowTimeOutInMillis / 2 )  ) {
+				return true;
+			}
+		
+		}
+		return false;
+	}
+	
+	 
 	
 	// we only want to compute routes for edge links we know
 	private boolean checkIfValid(SourceDestination sourceDestination ) {
@@ -262,6 +351,7 @@ public class ReactiveRoutingModule implements IOFMessageListener {
 	
 	private boolean injectPacketForHost(IPv4Address hostAddr, Ethernet packet) {
 		// First find out on which switch and port to inject
+		log.info("Injecting Packet to {} ", hostAddr);
 		DatapathId id  = edgeSwitches.get(hostAddr );
 		if( id == null) {
 			log.info("Could not find a switch for host" + hostAddr);

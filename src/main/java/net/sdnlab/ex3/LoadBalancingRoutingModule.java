@@ -19,7 +19,7 @@ public class LoadBalancingRoutingModule extends ReactiveRoutingModule {
 
 	public LoadBalancingRoutingModule(ITopologyService topologyService, IOFSwitchService switchService,
 			ILinkCostCalculator linkCostCalculator) {
-		super( topologyService, switchService, linkCostCalculator, 5, U64.of(0xAFFE),32700);
+		super( topologyService, switchService, linkCostCalculator, 60, U64.of(0xAFFE),32700);
 		
 	}
 	

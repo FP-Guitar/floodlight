@@ -46,9 +46,9 @@ public class BandWithCostCalculator implements ILinkCostCalculator {
 					if ( value > (long) Integer.MAX_VALUE ) {
 						log.info("overflow, set link cost to max");
 						value = Integer.MAX_VALUE;
-					} else if( value < 0) {
-						log.info("underflow, set link cost to 0");
-						value = 0;
+					} else if( value < 1) {
+						log.debug("underflow, set link cost to 1, do not tolerate values below 1");
+						value = 1;
 					}
 					intValue  = (int) (value);
 					mapToPopulate.put(link, intValue );
