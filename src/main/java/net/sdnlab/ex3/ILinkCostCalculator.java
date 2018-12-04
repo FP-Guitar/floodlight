@@ -16,4 +16,5 @@ public interface ILinkCostCalculator {
 	 */
 	Map<Link, Integer> calculateLinkCost(Map<DatapathId, Set<Link>> allLinks);
 	
+	Map<Link, Integer> getLastLinkCosts();
 }

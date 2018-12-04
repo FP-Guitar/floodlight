@@ -1,5 +1,6 @@
 package net.sdnlab.ex3;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -7,14 +8,21 @@ import java.util.Map;
 import java.util.Set;
 
 import org.projectfloodlight.openflow.protocol.OFFactory;
+import org.projectfloodlight.openflow.protocol.OFFlowAdd;
 import org.projectfloodlight.openflow.protocol.OFMessage;
 import org.projectfloodlight.openflow.protocol.OFPacketOut;
 import org.projectfloodlight.openflow.protocol.OFType;
 import org.projectfloodlight.openflow.protocol.action.OFAction;
+import org.projectfloodlight.openflow.protocol.action.OFActions;
+import org.projectfloodlight.openflow.protocol.match.Match;
+import org.projectfloodlight.openflow.protocol.match.MatchField;
 import org.projectfloodlight.openflow.types.DatapathId;
 import org.projectfloodlight.openflow.types.EthType;
 import org.projectfloodlight.openflow.types.IPv4Address;
+import org.projectfloodlight.openflow.types.IpProtocol;
 import org.projectfloodlight.openflow.types.OFPort;
+import org.projectfloodlight.openflow.types.TransportPort;
+import org.projectfloodlight.openflow.types.U64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,47 +32,62 @@ import net.floodlightcontroller.core.IOFMessageListener;
 import net.floodlightcontroller.core.IOFSwitch;
 import net.floodlightcontroller.core.internal.IOFSwitchService;
 import net.floodlightcontroller.linkdiscovery.Link;
-import net.floodlightcontroller.core.IListener.Command;
 import net.floodlightcontroller.packet.Ethernet;
 import net.floodlightcontroller.packet.IPv4;
+import net.floodlightcontroller.packet.TCP;
+import net.floodlightcontroller.packet.UDP;
 import net.floodlightcontroller.routing.BroadcastTree;
-import net.floodlightcontroller.topology.ITopologyListener;
 import net.floodlightcontroller.topology.ITopologyService;
 import net.sdnlab.common.dijkstra.Dijkstra;
 
 
-import static net.sdnlab.common.Helper.updateSwitch;
+
 public class ReactiveRoutingModule implements IOFMessageListener {
 
-	private Logger log;
+	protected Logger log;
 	// Store Edgeswitches associated with an IP Address in a covinient Map
 	private Map<IPv4Address, DatapathId> edgeSwitches;
 	private ITopologyService topologyService;
 	private IOFSwitchService switchService;
 	private ILinkCostCalculator linkCostCalculator;
-	private int flowTimeOutInSeconds = 5;
-	private class SourceDestination {
+	private int flowTimeOutInSeconds;
+	private U64 flowCookie;
+	private int flowPriority;
+	/**
+	 * Class for representing a end-to-end connection
+	 * actually information is aequivalent to information typically
+	 * used for socket identification
+	 * @author fabian
+	 *
+	 */
+	protected class SourceDestination {
 		// source of the packet in question
 		public IPv4Address source;
+		public TransportPort sourcePort;
 		// destination of the packet in question
 		public IPv4Address destination;
+		public TransportPort destinationPort;
+		
+		public IpProtocol protocol;
 		
 		@Override
 		public String toString() {
-			return "[Source: " + source + ", Destination: " + destination +"]";
+			return "[Source: " + source +":"+sourcePort + ", Destination: " + destination +":"+destinationPort+"]";
 		}
 	}
 	
 	public ReactiveRoutingModule(ITopologyService topologyService, IOFSwitchService switchService, ILinkCostCalculator linkCostCalculator) {
-		this ( topologyService, switchService, linkCostCalculator, 5);
+		this ( topologyService, switchService, linkCostCalculator, 5, U64.of(0xcafe),32700);
 	}
 	
-	public ReactiveRoutingModule(ITopologyService topologyService, IOFSwitchService switchService, ILinkCostCalculator linkCostCalculator, int flowTimeOutInSeconds ) {
+	public ReactiveRoutingModule(ITopologyService topologyService, IOFSwitchService switchService, ILinkCostCalculator linkCostCalculator, int flowTimeOutInSeconds, U64 flowCookie, int flowPriority ) {
 		this.topologyService = topologyService;
 		this.switchService = switchService;
 		this.linkCostCalculator = linkCostCalculator;
 		this.flowTimeOutInSeconds = flowTimeOutInSeconds;
-		log= LoggerFactory.getLogger( ReactiveRoutingModule.class );
+		this.flowCookie = flowCookie;
+		this.flowPriority = flowPriority;
+		log= LoggerFactory.getLogger( this.getClass() );
 		// Fill map of edge Switches (leaf nodes of tree)
 		edgeSwitches = new HashMap<IPv4Address, DatapathId>();
 		DatapathId switch11 = DatapathId.of("00:00:00:00:00:00:01:01");
@@ -130,7 +153,7 @@ public class ReactiveRoutingModule implements IOFMessageListener {
 			}
 			
 			if( routeIsInstalled && packetIsInjected ) {
-				log.info("succesflly handled " + sourceDestination );
+				log.info("successfully handled " + sourceDestination );
 			} else {
 				log.error("failed to handle " + sourceDestination + "route:" + routeIsInstalled +" packetinjectked:" + packetIsInjected);
 			}
@@ -155,6 +178,7 @@ public class ReactiveRoutingModule implements IOFMessageListener {
 	private BroadcastTree computeRoute(SourceDestination sourceDestination ) {
 		log.info("Computing route: " + sourceDestination);
 		DatapathId rootNode = edgeSwitches.get(sourceDestination.source);
+		
 		Map<DatapathId, Set<Link>> allLinks = this.topologyService.getAllLinks();
 		Map<Link, Integer> linkCost = this.linkCostCalculator.calculateLinkCost(allLinks);
 		
@@ -176,14 +200,18 @@ public class ReactiveRoutingModule implements IOFMessageListener {
 		
 		// as long as we have not reached the rootNode, and
 		// as long as we have no write error when pushing a flow
+		int aggregatedLinkCost = 0;
 		while ( ! nextNode.equals(rootNode) && success == true ) {
 			nextLink = broadCastTree.getTreeLink(nextNode);
+			int linkCost = getLinkCost(nextLink);
+			aggregatedLinkCost+=linkCost;
 			// This can be null, if the controller not has fully negotiated the roles with all switches, or the
 			// topology information was incomplete when computing dijkstra
 			if( nextLink == null) {
 				log.error("Changing topology, Controller not fully initialized?, got null link from node, aborting route installing");
 				return false;
 			}
+			
 			//This can be null, if the controller not has fully negotiated the roles with all switches, or the
 			// topology information was incomplete when computing dijkstra
 			nextNode = nextLink.getSrc();
@@ -194,12 +222,14 @@ public class ReactiveRoutingModule implements IOFMessageListener {
 			OFPort outputPort = nextLink.getSrcPort();
 			IOFSwitch switchToUpdate = this.switchService.getSwitch(nextNode);
 			
-			success &= updateSwitch(switchToUpdate, sourceDestination.destination, outputPort.getPortNumber(), flowTimeOutInSeconds );
+			success &= updateSwitch(switchToUpdate, sourceDestination, outputPort );
 			
-			installedRoute += " -- " + "["+nextNode +"]";
+			installedRoute =   "["+nextNode +"]" + "--" + linkCost +"--" + installedRoute;
 		}
 		if( success ) {
-			log.info("Installed Route: " + installedRoute + " for " + sourceDestination);
+			log.info("Installed Route: {}", sourceDestination);  
+			log.info("Path: {}", installedRoute);
+			log.info("Total Route Cost:{}",  aggregatedLinkCost);
 			return true;
 		} else {
 			log.info("Failed to install Route, got so far: " + installedRoute + " for " + sourceDestination);
@@ -209,8 +239,24 @@ public class ReactiveRoutingModule implements IOFMessageListener {
 
 	private SourceDestination getSourceDestination(IPv4 payload) {	
 			SourceDestination sourceDestination = new SourceDestination();
+			IpProtocol protocol = payload.getProtocol();
+			
 			sourceDestination.source = payload.getSourceAddress();
 			sourceDestination.destination = payload.getDestinationAddress();
+			sourceDestination.protocol = protocol;
+			
+			if( protocol.getIpProtocolNumber() == 0x06 ) {
+				TCP packet = (TCP) payload.getPayload();
+				sourceDestination.destinationPort = packet.getDestinationPort();
+				sourceDestination.sourcePort = packet.getSourcePort();	
+			} else if (protocol.getIpProtocolNumber() == 0x11 ) {
+				UDP packet = (UDP) payload.getPayload();
+				sourceDestination.destinationPort = packet.getDestinationPort();
+				sourceDestination.sourcePort = packet.getSourcePort();
+			} else {
+				log.error("Unsupported Protocol :" + protocol);
+			}
+			
 		return sourceDestination;
 	}
 	
@@ -240,5 +286,61 @@ public class ReactiveRoutingModule implements IOFMessageListener {
 		// finally write to output
 		return switchToUse.write(po);
 	}
-
+	
+	// We use some template pattern here, also the poor mans version,
+	// don't tell my colleagues ;)
+	private boolean updateSwitch(IOFSwitch switchToUpdate, SourceDestination sourceDestination, OFPort outPutPort) {	
+	 	// we want to use a factory, definitely matching to the switch
+		// so instead of using generic factory with version, we 
+		// always use the factory provided by the switch
+		OFFactory factoryToUse = switchToUpdate.getOFFactory();
+		
+		// create part of flow message
+		Match match = createMatch(factoryToUse, sourceDestination);
+		ArrayList<OFAction> actionList = createActionList(factoryToUse, sourceDestination, outPutPort);
+				
+		// create the flow message
+		OFFlowAdd flowAdd = factoryToUse.buildFlowAdd()
+				.setCookie(flowCookie)
+				.setPriority(flowPriority)
+				.setIdleTimeout(flowTimeOutInSeconds)
+				.setMatch(match)
+				.setActions(actionList)
+				.build();
+		
+		// check if it was  successfully written to the switch
+		boolean wasSuccess = switchToUpdate.write(flowAdd);
+		return wasSuccess;
+	}
+	
+	// overwrite for different match
+	protected Match createMatch(OFFactory factoryToUse, SourceDestination sourceDestination) {
+		// which packets to match
+		Match match = factoryToUse.buildMatch()
+				.setExact(MatchField.ETH_TYPE, EthType.IPv4)
+				.setExact(MatchField.IPV4_DST, sourceDestination.destination)
+				.build();
+		return match;
+	}
+	
+	// overwrite for different actions...
+	protected ArrayList<OFAction> createActionList(OFFactory factoryToUse, SourceDestination sourceDestination, OFPort outputPort) {
+		ArrayList<OFAction> actionList = new ArrayList<OFAction>();
+		OFActions actions = factoryToUse.actions();
+		actionList.add(
+				actions.buildOutput()
+				.setMaxLen(0xFFffFFff)
+				.setPort(outputPort)
+				.build());
+		return actionList;
+	}
+	
+	private int getLinkCost(Link link) {
+		Map <Link, Integer> costs = this.linkCostCalculator.getLastLinkCosts();
+		if (  costs != null ) {
+			return costs.get(link);
+		} else {
+			return 1;
+		}
+	}
 }
