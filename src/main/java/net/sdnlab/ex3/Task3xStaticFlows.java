@@ -20,7 +20,7 @@ import net.floodlightcontroller.core.internal.IOFSwitchService;
  * @author fabian
  *
  */
-public class Task32StaticFlows implements IOFSwitchListener {
+public class Task3xStaticFlows implements IOFSwitchListener {
 	// We need to update several switches,
 	// use a poor mans variant of a command pattern
 	private abstract class SwitchUpdate {
@@ -37,8 +37,8 @@ public class Task32StaticFlows implements IOFSwitchListener {
 	
 	private Logger logger;
 	
-	public Task32StaticFlows(IOFSwitchService switchService ) {
-		this.logger = LoggerFactory.getLogger(Task32StaticFlows.class);
+	public Task3xStaticFlows(IOFSwitchService switchService ) {
+		this.logger = LoggerFactory.getLogger(Task3xStaticFlows.class);
 		staticFlows = new HashMap<DatapathId, SwitchUpdate>();
 		
 		this.switchService = switchService;

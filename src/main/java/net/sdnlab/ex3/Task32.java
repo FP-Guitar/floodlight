@@ -21,7 +21,7 @@ public class Task32 implements IFloodlightModule {
 	private IOFSwitchService switchService;
 	private IFloodlightProviderService floodlightProviderService;
 	private ITopologyService topologyService;
-	private Task32StaticFlows staticFlows;
+	private Task3xStaticFlows staticFlows;
 	private ReactiveRoutingModule reactiveRouting;
 	@Override
 	public Collection<Class<? extends IFloodlightService>> getModuleServices() {
@@ -57,7 +57,7 @@ public class Task32 implements IFloodlightModule {
 	@Override
 	public void startUp(FloodlightModuleContext context) throws FloodlightModuleException {
 		logger.info("Module Task32 loaded");
-		this.staticFlows = new Task32StaticFlows(this.switchService);
+		this.staticFlows = new Task3xStaticFlows(this.switchService);
 		
 		this.floodlightProviderService.addOFMessageListener(OFType.PACKET_IN, this.reactiveRouting);
 	}
