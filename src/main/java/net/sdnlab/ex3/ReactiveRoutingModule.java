@@ -41,7 +41,8 @@ public class ReactiveRoutingModule implements IOFMessageListener {
 	private Map<IPv4Address, DatapathId> edgeSwitches;
 	private ITopologyService topologyService;
 	private IOFSwitchService switchService;
-	
+	private ILinkCostCalculator linkCostCalculator;
+	private int flowTimeOutInSeconds = 5;
 	private class SourceDestination {
 		// source of the packet in question
 		public IPv4Address source;
@@ -54,9 +55,15 @@ public class ReactiveRoutingModule implements IOFMessageListener {
 		}
 	}
 	
-	public ReactiveRoutingModule(ITopologyService topologyService, IOFSwitchService switchService ) {
+	public ReactiveRoutingModule(ITopologyService topologyService, IOFSwitchService switchService, ILinkCostCalculator linkCostCalculator) {
+		this ( topologyService, switchService, linkCostCalculator, 5);
+	}
+	
+	public ReactiveRoutingModule(ITopologyService topologyService, IOFSwitchService switchService, ILinkCostCalculator linkCostCalculator, int flowTimeOutInSeconds ) {
 		this.topologyService = topologyService;
 		this.switchService = switchService;
+		this.linkCostCalculator = linkCostCalculator;
+		this.flowTimeOutInSeconds = flowTimeOutInSeconds;
 		log= LoggerFactory.getLogger( ReactiveRoutingModule.class );
 		// Fill map of edge Switches (leaf nodes of tree)
 		edgeSwitches = new HashMap<IPv4Address, DatapathId>();
@@ -113,8 +120,21 @@ public class ReactiveRoutingModule implements IOFMessageListener {
 				return Command.CONTINUE;
 			}
 			
-			computeRoute(sourceDestination);
-			injectPacketForHost(sourceDestination.destination, eth);
+			BroadcastTree route = computeRoute(sourceDestination);
+			
+			boolean routeIsInstalled = installRoute(route, sourceDestination);
+			boolean packetIsInjected = false;
+			
+			if(routeIsInstalled) {
+				packetIsInjected = injectPacketForHost(sourceDestination.destination, eth);
+			}
+			
+			if( routeIsInstalled && packetIsInjected ) {
+				log.info("succesflly handled " + sourceDestination );
+			} else {
+				log.error("failed to handle " + sourceDestination + "route:" + routeIsInstalled +" packetinjectked:" + packetIsInjected);
+			}
+			
 			return Command.STOP;
 		} else {
 			return Command.CONTINUE;
@@ -132,29 +152,59 @@ public class ReactiveRoutingModule implements IOFMessageListener {
 		}
 	}
 	
-	private void computeRoute(SourceDestination sourceDestination ) {
+	private BroadcastTree computeRoute(SourceDestination sourceDestination ) {
 		log.info("Computing route: " + sourceDestination);
 		DatapathId rootNode = edgeSwitches.get(sourceDestination.source);
-		DatapathId destinationNode = edgeSwitches.get(sourceDestination.destination);
 		Map<DatapathId, Set<Link>> allLinks = this.topologyService.getAllLinks();
+		Map<Link, Integer> linkCost = this.linkCostCalculator.calculateLinkCost(allLinks);
 		
-		BroadcastTree broadCastTree = Dijkstra.compute(allLinks, rootNode, null, false);
+		BroadcastTree broadCastTree = Dijkstra.compute(allLinks, rootNode, linkCost, false);
 		
-		 
+		return  broadCastTree;
+	}
+	
+	private boolean installRoute(BroadcastTree broadCastTree, SourceDestination sourceDestination) {
 		Link nextLink = null;
-		DatapathId nextNode = destinationNode;
-		while ( ! nextNode.equals(rootNode) ) {
-			System.out.println(nextNode);
+		DatapathId rootNode = edgeSwitches.get(sourceDestination.source);
+		DatapathId nextNode = edgeSwitches.get(sourceDestination.destination);
+		
+		// Will hold the complete route as string at the end
+		String installedRoute = "["+nextNode+"]";
+		
+		// Tracks, if a flow as succesfully written on a switch
+		boolean success = true;
+		
+		// as long as we have not reached the rootNode, and
+		// as long as we have no write error when pushing a flow
+		while ( ! nextNode.equals(rootNode) && success == true ) {
 			nextLink = broadCastTree.getTreeLink(nextNode);
-			System.out.println(nextLink);
+			// This can be null, if the controller not has fully negotiated the roles with all switches, or the
+			// topology information was incomplete when computing dijkstra
+			if( nextLink == null) {
+				log.error("Changing topology, Controller not fully initialized?, got null link from node, aborting route installing");
+				return false;
+			}
+			//This can be null, if the controller not has fully negotiated the roles with all switches, or the
+			// topology information was incomplete when computing dijkstra
 			nextNode = nextLink.getSrc();
-			
+			if( nextNode == null) {
+				log.error("Changing topology, Controller not fully initialized?, got link to a null node, aborting route installing");
+				return false;
+			}
 			OFPort outputPort = nextLink.getSrcPort();
 			IOFSwitch switchToUpdate = this.switchService.getSwitch(nextNode);
-			updateSwitch(switchToUpdate, sourceDestination.destination, outputPort.getPortNumber(), 5 );
 			
+			success &= updateSwitch(switchToUpdate, sourceDestination.destination, outputPort.getPortNumber(), flowTimeOutInSeconds );
+			
+			installedRoute += " -- " + "["+nextNode +"]";
 		}
-		System.out.println(nextNode);
+		if( success ) {
+			log.info("Installed Route: " + installedRoute + " for " + sourceDestination);
+			return true;
+		} else {
+			log.info("Failed to install Route, got so far: " + installedRoute + " for " + sourceDestination);
+			return false;
+		}
 	}
 
 	private SourceDestination getSourceDestination(IPv4 payload) {	

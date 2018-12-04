@@ -51,13 +51,14 @@ public class Task32 implements IFloodlightModule {
 		this.switchService = context.getServiceImpl(IOFSwitchService.class);
 		this.floodlightProviderService = context.getServiceImpl(IFloodlightProviderService.class);
 		this.topologyService = context.getServiceImpl(ITopologyService.class);
-		this.reactiveRouting = new ReactiveRoutingModule(this.topologyService, this.switchService);
+		this.reactiveRouting = new ReactiveRoutingModule(this.topologyService, this.switchService, new Task32LinkCostCalculator() );
 	}
 
 	@Override
 	public void startUp(FloodlightModuleContext context) throws FloodlightModuleException {
 		logger.info("Module Task32 loaded");
 		this.staticFlows = new Task3xStaticFlows(this.switchService);
+		this.switchService.addOFSwitchListener(this.staticFlows);
 		
 		this.floodlightProviderService.addOFMessageListener(OFType.PACKET_IN, this.reactiveRouting);
 	}

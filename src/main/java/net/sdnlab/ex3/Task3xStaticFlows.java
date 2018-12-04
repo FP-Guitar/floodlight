@@ -88,7 +88,6 @@ public class Task3xStaticFlows implements IOFSwitchListener {
 			}
 		});
 		
-		this.switchService.addOFSwitchListener(this);
 	}
 	@Override
 	public void switchAdded(DatapathId switchId) {
