@@ -117,23 +117,24 @@ public class ARPHandler implements IOFMessageListener {
 	public Command receive(IOFSwitch sw, OFMessage msg, FloodlightContext cntx) {
 		Ethernet eth = IFloodlightProviderService.bcStore.get(cntx, IFloodlightProviderService.CONTEXT_PI_PAYLOAD);
 		// check if we have a packet of the right type
-		if( eth.getEtherType().equals(EthType.ARP)) {				
+		if( eth.getEtherType().equals(EthType.ARP) ) {				
 			ARP payload = (ARP) eth.getPayload();
 			ArpOpcode opcode  = payload.getOpCode();
+			
 			if( opcode == ArpOpcode.REQUEST ) {
-				handleARPRequest(sw, msg, cntx, payload );
+				handleARPRequest( payload );
 			} else if ( opcode == ArpOpcode.REPLY ) {
-				handleARPReply(sw, msg, cntx, payload );
+				handleARPReply( payload );
 			} else {
 				logger.info("Unhandeld ARPOpcode of type " + opcode.toString() );
 			}
-			// no one else should handle arp requests
+			// no one else should handle arp messages
 			return Command.STOP;
 		}
 		return Command.CONTINUE;
 	}
 	
-	private void handleARPRequest(IOFSwitch sw, OFMessage msg, FloodlightContext cntx, ARP payload ) {
+	private void handleARPRequest( ARP payload ) {
 		logger.info("Handling ARPRequest from " +  payload.getSenderProtocolAddress() );
 
 		ARPEntry requestSender = ARPEntry.of(payload.getSenderProtocolAddress(), payload.getSenderHardwareAddress());
@@ -220,7 +221,7 @@ public class ARPHandler implements IOFMessageListener {
 		return switchToUse.write(po);
 	}
 	
-	private void handleARPReply(IOFSwitch sw, OFMessage msg, FloodlightContext cnt, ARP payload  ) {
+	private void handleARPReply( ARP payload  ) {
 		if( ! arpCache.contains(payload.getSenderProtocolAddress() )) {
 			arpCache.storeEntry( ARPEntry.of(payload.getSenderProtocolAddress(), payload.getSenderHardwareAddress()));
 		} 

@@ -75,12 +75,14 @@ public class ReactiveRoutingModule implements IOFMessageListener {
 		public TransportPort destinationPort;
 		
 		public IpProtocol protocol;
-		
-		
-		
+			
 		@Override
 		public String toString() {
-			return "[Source: " + source +":"+sourcePort + ", Destination: " + destination +":"+destinationPort+"]";
+			String strSourcePort = "noPort";
+			String strDestinationPort ="noPort";
+			strSourcePort = sourcePort == null ? "noPort" : sourcePort.toString();
+			strDestinationPort = destinationPort == null ? "noPort" : destinationPort.toString();
+			return "[Source: " + source +":"+strSourcePort + ", Destination: " + destination +":"+strDestinationPort+"]";
 		}
 
 		@Override
@@ -205,11 +207,11 @@ public class ReactiveRoutingModule implements IOFMessageListener {
 			IPv4 payload = (IPv4) eth.getPayload();
 			SourceDestination sourceDestination = getSourceDestination(payload);
 			
-			if( ! checkIfValid( sourceDestination )) {
+			if( ! checkIfValid( sourceDestination ) ) {
 				// Maybe someone else is interrested....
 				return Command.CONTINUE;
 			}
-			if( checkIfFlowAlreadyInstalled(sourceDestination)) {
+			if( checkIfFlowAlreadyInstalled(sourceDestination) ) {
 				// flow is installed, but we have some packet in
 				// because of a fast sending process
 				injectPacketForHost(sourceDestination.destination, eth);
@@ -222,7 +224,7 @@ public class ReactiveRoutingModule implements IOFMessageListener {
 			boolean packetIsInjected = false;
 			Collection<TableId> tables = sw.getTables();
 	
-			if(routeIsInstalled) {
+			if( routeIsInstalled ) {
 				packetIsInjected = injectPacketForHost(sourceDestination.destination, eth);
 			}
 			
@@ -230,7 +232,7 @@ public class ReactiveRoutingModule implements IOFMessageListener {
 				log.info("#{} successfully handled {}",  ++flowCounter, sourceDestination );
 				lastSeenFlow.put(sourceDestination, System.currentTimeMillis() );
 			} else {
-				log.error("failed to handle " + sourceDestination + "route:" + routeIsInstalled +" packetinjectked:" + packetIsInjected);
+				log.error("failed to handle " + sourceDestination + "route:" + routeIsInstalled +" packetinjected:" + packetIsInjected);
 			}
 		}
 		return Command.CONTINUE;
@@ -243,6 +245,8 @@ public class ReactiveRoutingModule implements IOFMessageListener {
 			long currentTime = System.currentTimeMillis();
 			long lastSeenTime = lastSeenFlow.get(sourceDestination);
 			long diff = currentTime - lastSeenTime;
+			// The half of the flow timeout seems to be a reasonable
+			// timeout... 
 			if( diff < (flowTimeOutInMillis / 2 )  ) {
 				return true;
 			}
@@ -263,7 +267,7 @@ public class ReactiveRoutingModule implements IOFMessageListener {
 			return false;
 		}
 	}
-	
+	// use dijkstra implementation from floodlight...
 	private BroadcastTree computeRoute(SourceDestination sourceDestination ) {
 		log.info("Computing route: " + sourceDestination);
 		DatapathId rootNode = edgeSwitches.get(sourceDestination.source);
@@ -289,6 +293,7 @@ public class ReactiveRoutingModule implements IOFMessageListener {
 		
 		// as long as we have not reached the rootNode, and
 		// as long as we have no write error when pushing a flow
+		// we install the flow backwards.. from destination to source...
 		int aggregatedLinkCost = 0;
 		while ( ! nextNode.equals(rootNode) && success == true ) {
 			nextLink = broadCastTree.getTreeLink(nextNode);
@@ -301,7 +306,7 @@ public class ReactiveRoutingModule implements IOFMessageListener {
 				return false;
 			}
 			
-			//This can be null, if the controller not has fully negotiated the roles with all switches, or the
+			// This can be null, if the controller not has fully negotiated the roles with all switches, or the
 			// topology information was incomplete when computing dijkstra
 			nextNode = nextLink.getSrc();
 			if( nextNode == null) {
@@ -312,12 +317,12 @@ public class ReactiveRoutingModule implements IOFMessageListener {
 			IOFSwitch switchToUpdate = this.switchService.getSwitch(nextNode);
 			
 			success &= updateSwitch(switchToUpdate, sourceDestination, outputPort );
-			
-			installedRoute =   "["+nextNode +"]" + "--" + linkCost +"--" + installedRoute;
+			// collect the route information for debug output
+			installedRoute =   "["+nextNode +"]\n" + "--" + linkCost +"--" + installedRoute;
 		}
 		if( success ) {
 			log.info("Installed Route: {}", sourceDestination);  
-			log.info("Path: {}", installedRoute);
+			log.info("Path: \n{}", installedRoute);
 			log.info("Total Route Cost:{}",  aggregatedLinkCost);
 			return true;
 		} else {
@@ -325,7 +330,12 @@ public class ReactiveRoutingModule implements IOFMessageListener {
 			return false;
 		}
 	}
-
+	/**
+	 * potentially unsafe, no handling of corrupted network traffic
+	 * e.g. iperf3 udp packets seem to be not deseriliazable...
+	 * @param payload
+	 * @return SourceDestination for a given IPv4 payload...
+	 */
 	private SourceDestination getSourceDestination(IPv4 payload) {	
 			SourceDestination sourceDestination = new SourceDestination();
 			IpProtocol protocol = payload.getProtocol();

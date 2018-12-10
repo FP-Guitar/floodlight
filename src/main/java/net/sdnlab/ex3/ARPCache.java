@@ -10,15 +10,16 @@ import org.slf4j.LoggerFactory;
 import net.sdnlab.ex3.ARPEntry;
 public class ARPCache {
 		private static Logger logger;
+		private boolean printAlwaysFullCache = true;
 		public ARPCache() {
 			logger = LoggerFactory.getLogger(ARPCache.class.getName());
 		}
 		// Use Map instead of Arrays of entries for faster search
 		private static Map<IPv4Address, MacAddress> arpEntries = new HashMap<IPv4Address,MacAddress>();
 		/**
-		 * Get an 
+		 * Get an ArpEntry to a given IPAddress
 		 * @param ipAddress
-		 * @return
+		 * @return ARPEntry
 		 */
 		public synchronized ARPEntry getEntryFromIP( IPv4Address ipAddress ) {
 			MacAddress match = arpEntries.get(ipAddress);
@@ -44,8 +45,9 @@ public class ARPCache {
 		 * @param entry To store
 		 */
 		public synchronized void storeEntry( ARPEntry entry ) {
-			logger.info("Stored " + entry);
+			logger.info("Storing " + entry);
 			arpEntries.put(entry.getIpAddress(), entry.getMacAddress());
+			printCache();
 		}
 		
 		/**
@@ -55,15 +57,25 @@ public class ARPCache {
 		 */
 		public synchronized void deleteEntryByIp( IPv4Address ipAddress ) {		
 			if ( arpEntries.containsKey(ipAddress) ) {
-				logger.info("Delete " + arpEntries.get(ipAddress));
+				logger.info("Deleting " + arpEntries.get(ipAddress));
 				arpEntries.remove(ipAddress);
-				
+				printCache();
 			}
 		}
 		
 		public synchronized void reset() {
 			logger.info("Reset cache (clear)");
 			arpEntries.clear();
+			printCache();
+		}
+		
+		void printCache( ) {
+			if ( printAlwaysFullCache ) {
+				logger.info("Printing all Entries:");
+				for ( IPv4Address addr : arpEntries.keySet() ) {
+					logger.info( ARPEntry.of( addr, arpEntries.get(addr) ).toString() );
+				}
+			}
 		}
 		
 		

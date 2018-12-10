@@ -106,8 +106,9 @@ public class Task3xStaticFlows implements IOFSwitchListener {
 			logger.info("Pushing static flow to: " + switchId );
 			IOFSwitch switchToUse = switchService.getSwitch(switchId);
 			boolean success = staticFlows.get(switchId).update(switchToUse);
-			logger.info("Success: " + success);
-			
+			logger.info("Success: " + success);		
+		} else {
+			logger.info("No Flow for {}" , switchId );
 		}
 
 	}

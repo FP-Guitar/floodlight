@@ -57,15 +57,21 @@ public class Task33 implements IFloodlightModule {
 		this.topologyService = context.getServiceImpl(ITopologyService.class);
 		this.statisticsService = context.getServiceImpl(IStatisticsService.class);
 		
-		this.reactiveRouting = new LoadBalancingRoutingModule(this.topologyService, this.switchService, new BandWithCostCalculator(this.statisticsService) );
+		
 	}
 
 	@Override
 	public void startUp(FloodlightModuleContext context) throws FloodlightModuleException {
 		log.info("Module Task33 Startup");
+		// start statistics collection
+		this.statisticsService.collectStatistics(true);
+		// add module for static flows
 		this.staticFlows = new Task3xStaticFlows(this.switchService);
 		this.switchService.addOFSwitchListener(this.staticFlows);
-		this.statisticsService.collectStatistics(true);
+		
+		// add module for reactive Routing:
+		ILinkCostCalculator linkCostCalculator = new BandWithCostCalculator(this.statisticsService);
+		this.reactiveRouting = new LoadBalancingRoutingModule(this.topologyService, this.switchService, linkCostCalculator );
 		this.floodlightProviderService.addOFMessageListener(OFType.PACKET_IN, this.reactiveRouting);
 	}
 

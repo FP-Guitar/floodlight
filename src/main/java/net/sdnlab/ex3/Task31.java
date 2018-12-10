@@ -65,6 +65,18 @@ public class Task31 implements IFloodlightModule, IOFSwitchListener {
 		this.floodlightProviderService = context.getServiceImpl(IFloodlightProviderService.class);
 		this.topologyService = context.getServiceImpl(ITopologyService.class);
 		
+
+	}
+
+	@Override
+	public void startUp(FloodlightModuleContext context) throws FloodlightModuleException {
+		// create the arp handler and add the messageListener
+		this.arpHandler = new ARPHandler( this.switchService );
+		this.floodlightProviderService.addOFMessageListener(OFType.PACKET_IN, this.arpHandler);
+		
+		// add messagelistener to switch for installing routes...
+		this.switchService.addOFSwitchListener(this);
+		
 		this.topologyService.addListener( new ITopologyListener() {
 			// We need to reset the cache, if something has changed
 			@Override
@@ -73,13 +85,6 @@ public class Task31 implements IFloodlightModule, IOFSwitchListener {
 				arpHandler.resetCache();
 			}
 		});
-		this.arpHandler = new ARPHandler( this.switchService );
-	}
-
-	@Override
-	public void startUp(FloodlightModuleContext context) throws FloodlightModuleException {
-		this.switchService.addOFSwitchListener(this);
-		this.floodlightProviderService.addOFMessageListener(OFType.PACKET_IN, this.arpHandler);
 	}
 
 	@Override
