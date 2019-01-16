@@ -35,10 +35,10 @@ import org.projectfloodlight.openflow.types.EthType;
 public class ARPHandler implements IOFMessageListener {
 	private IOFSwitchService switchService;
 	
-	private static Logger logger;
+	protected static Logger logger;
 	
 	// We need to know on which switch is which, host
-	private class HostInfo {
+	protected class HostInfo {
 		public HostInfo(DatapathId switchId, int outPutPort) {
 			super();
 			this.switchId = switchId;
@@ -58,7 +58,7 @@ public class ARPHandler implements IOFMessageListener {
 	
 	
 	// hardcode topology
-	private Map <IPv4Address, HostInfo> switches = new HashMap<IPv4Address, HostInfo>();
+	protected Map <IPv4Address, HostInfo> switches = new HashMap<IPv4Address, HostInfo>();
 	
 	private ARPCache arpCache = new ARPCache();
 	public void resetCache() {
@@ -66,6 +66,14 @@ public class ARPHandler implements IOFMessageListener {
 	}
 	
 	public ARPHandler( IOFSwitchService switchService) {
+		fillTopology();
+		
+		this.switchService = switchService;
+		
+		logger = LoggerFactory.getLogger(this.getClass());
+	}
+	
+	protected void fillTopology() {
 		// fill topology info by hand
 		switches.put(IPv4Address.of("10.10.1.1"), new HostInfo(DatapathId.of("00:00:00:00:00:00:00:01"), 1));
 		switches.put(IPv4Address.of("10.10.1.2"), new HostInfo(DatapathId.of("00:00:00:00:00:00:00:01"), 2));
@@ -78,12 +86,7 @@ public class ARPHandler implements IOFMessageListener {
 		switches.put(IPv4Address.of("10.10.4.1"), new HostInfo(DatapathId.of("00:00:00:00:00:00:00:04"), 1));
 		switches.put(IPv4Address.of("10.10.4.2"), new HostInfo(DatapathId.of("00:00:00:00:00:00:00:04"), 2));
 		switches.put(IPv4Address.of("10.10.4.3"), new HostInfo(DatapathId.of("00:00:00:00:00:00:00:04"), 3));
-		
-		this.switchService = switchService;
-		
-		logger = LoggerFactory.getLogger(ARPHandler.class);
 	}
-	
 	
 	
 	private HostInfo getSwitch(IPv4Address addr) {
@@ -210,7 +213,7 @@ public class ARPHandler implements IOFMessageListener {
 		
 		// still ugly, but i don't care
 		List<OFAction> actions = Collections.singletonList(
-					(OFAction)switchFactory.actions().output(OFPort.of(info.getOutPutPort()), 0xffFFffFF)
+					(OFAction)switchFactory.actions().output(OFPort.of(outputPort), 0xffFFffFF)
 				);
 		OFPacketOut po = switchFactory.buildPacketOut()
 				.setData(serializedPacket)
@@ -222,6 +225,7 @@ public class ARPHandler implements IOFMessageListener {
 	}
 	
 	private void handleARPReply( ARP payload  ) {
+		logger.info("Handling ARPReply from " +  payload.getSenderProtocolAddress() );
 		if( ! arpCache.contains(payload.getSenderProtocolAddress() )) {
 			arpCache.storeEntry( ARPEntry.of(payload.getSenderProtocolAddress(), payload.getSenderHardwareAddress()));
 		} 

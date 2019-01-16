@@ -24,7 +24,7 @@ public class Task32LinkCostCalculator implements ILinkCostCalculator {
 		HashMap<Link, Integer> mapToPopulate = new HashMap<Link, Integer>();
 		for( DatapathId node : links.keySet() ) {
 			Set<Link> linksOfNode = links.get(node);
-			for( Link link : linksOfNode) {
+			for( Link link : linksOfNode ) {
 				mapToPopulate.put(link, 1);
 			}
 		}

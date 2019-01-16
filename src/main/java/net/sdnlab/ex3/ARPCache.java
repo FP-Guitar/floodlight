@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 import net.sdnlab.ex3.ARPEntry;
 public class ARPCache {
 		private static Logger logger;
-		private boolean printAlwaysFullCache = true;
+		private boolean printAlwaysFullCache = false;
 		public ARPCache() {
 			logger = LoggerFactory.getLogger(ARPCache.class.getName());
 		}

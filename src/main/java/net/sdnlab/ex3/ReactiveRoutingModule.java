@@ -144,7 +144,7 @@ public class ReactiveRoutingModule implements IOFMessageListener {
 	}
 	
 	public ReactiveRoutingModule(ITopologyService topologyService, IOFSwitchService switchService, ILinkCostCalculator linkCostCalculator) {
-		this ( topologyService, switchService, linkCostCalculator, 5, U64.of(0xcafe),32700);
+		this ( topologyService, switchService, linkCostCalculator, 20, U64.of(0xcafe),32700);
 	}
 	
 	public ReactiveRoutingModule(ITopologyService topologyService, IOFSwitchService switchService, ILinkCostCalculator linkCostCalculator, int flowTimeOutInSeconds, U64 flowCookie, int flowPriority ) {
@@ -214,6 +214,7 @@ public class ReactiveRoutingModule implements IOFMessageListener {
 			if( checkIfFlowAlreadyInstalled(sourceDestination) ) {
 				// flow is installed, but we have some packet in
 				// because of a fast sending process
+				log.debug("already installed" + sourceDestination);
 				injectPacketForHost(sourceDestination.destination, eth);
 				return Command.CONTINUE;
 			}
@@ -222,8 +223,7 @@ public class ReactiveRoutingModule implements IOFMessageListener {
 			
 			boolean routeIsInstalled = installRoute(route, sourceDestination);
 			boolean packetIsInjected = false;
-			Collection<TableId> tables = sw.getTables();
-	
+			
 			if( routeIsInstalled ) {
 				packetIsInjected = injectPacketForHost(sourceDestination.destination, eth);
 			}
@@ -361,7 +361,7 @@ public class ReactiveRoutingModule implements IOFMessageListener {
 	
 	private boolean injectPacketForHost(IPv4Address hostAddr, Ethernet packet) {
 		// First find out on which switch and port to inject
-		log.info("Injecting Packet to {} ", hostAddr);
+		log.debug("Injecting Packet to {} ", hostAddr);
 		DatapathId id  = edgeSwitches.get(hostAddr );
 		if( id == null) {
 			log.info("Could not find a switch for host" + hostAddr);
