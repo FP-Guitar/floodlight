@@ -37,26 +37,6 @@ public class ARPHandler implements IOFMessageListener {
 	
 	protected static Logger logger;
 	
-	// We need to know on which switch is which, host
-	protected class HostInfo {
-		public HostInfo(DatapathId switchId, int outPutPort) {
-			super();
-			this.switchId = switchId;
-			this.outPutPort = outPutPort;
-		}
-		private DatapathId switchId;
-		private int outPutPort;
-		
-		@SuppressWarnings("unused")
-		public DatapathId getSwitchId() {
-			return switchId;
-		}
-		public int getOutPutPort() {
-			return outPutPort;
-		}
-	}
-	
-	
 	// hardcode topology
 	protected Map <IPv4Address, HostInfo> switches = new HashMap<IPv4Address, HostInfo>();
 	
@@ -204,7 +184,7 @@ public class ARPHandler implements IOFMessageListener {
 			return false;
 		}
 		// get the attached switch and outputport
-		IOFSwitch switchToUse = this.switchService.getSwitch(info.switchId);
+		IOFSwitch switchToUse = this.switchService.getSwitch(info.getSwitchId());
 		int outputPort = info.getOutPutPort();
 		
 		//now we can serialize the packet again, and send it to the second switch

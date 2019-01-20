@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 import org.projectfloodlight.openflow.protocol.OFFactory;
 import org.projectfloodlight.openflow.protocol.OFFlowAdd;
+import org.projectfloodlight.openflow.protocol.OFFlowAdd.Builder;
 import org.projectfloodlight.openflow.protocol.action.OFAction;
 import org.projectfloodlight.openflow.protocol.action.OFActions;
 import org.projectfloodlight.openflow.protocol.match.Match;
@@ -30,6 +31,10 @@ public class Helper{
 		return false;
 	}*/ 
 	
+	public static String simpleStatusMessage(String message ) {
+		return "{\"status\":\"" + message + "\"}";
+	}
+	
 	public static boolean updateSwitch (IOFSwitch switchToUpdate, IPv4Address ipToMatch,int outputPort) {
 		return updateSwitch( switchToUpdate, ipToMatch, outputPort, U64.of(0xcafe), 32700, 0);
 	}
@@ -38,7 +43,7 @@ public class Helper{
 		return updateSwitch(switchToUpdate, ipToMatch, outputPort, U64.of(0xcafe), 32700, idleTimeout );
 	}
 	
-	public static boolean updateSwitchWithPriority(IOFSwitch switchToUpdate, IPv4Address ipToMatch,int outputPort,  int priority) {
+	public static boolean  updateSwitchWithPriority(IOFSwitch switchToUpdate, IPv4Address ipToMatch,int outputPort,  int priority) {
 		return updateSwitch( switchToUpdate, ipToMatch, outputPort, U64.of(0xbadbeef), priority, 0);
 	}
 	

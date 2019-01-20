@@ -4,6 +4,6 @@ import net.floodlightcontroller.core.module.IFloodlightService;
 
 public interface ITask43Service extends IFloodlightService {
 	public String listSubscriptions();
-	public String addSubscription(String name /* TODO: add arguments */);
+	public String addSubscription(Subscription subscriptions);
 	public String deleteSubscription(String name);
 }
