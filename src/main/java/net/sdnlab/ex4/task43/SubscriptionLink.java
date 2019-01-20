@@ -15,10 +15,6 @@ import net.sdnlab.ex4.task43.Subscription.OPERATOR;
 import net.sdnlab.ex4.task43.Subscription.TYPE;
 
 public class SubscriptionLink extends Link {
-	
-
-	private int lessEqual = 0;
-	private int greaterThan = Integer.MAX_VALUE;;
 	private Subscription.TYPE filterType;;
 	
 	private Map<Subscription.TYPE,ArrayList<Subscription>> subscriptions;
@@ -29,7 +25,6 @@ public class SubscriptionLink extends Link {
 		this.subscriptions.put(Subscription.TYPE.ENERGY,new ArrayList<Subscription>());
 		this.subscriptions.put(Subscription.TYPE.POWER,new ArrayList<Subscription>());
 	}
-
 
 	/**
 	 * Add a subscription, which messages must go along this link

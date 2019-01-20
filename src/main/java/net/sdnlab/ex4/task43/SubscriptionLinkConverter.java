@@ -1,7 +1,6 @@
 package net.sdnlab.ex4.task43;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -49,9 +48,9 @@ public class SubscriptionLinkConverter {
 
 	private List<LessEqualAction> createLessEqual(Subscription subscription, SubscriptionLink subLink) {
 		int upperBound = subscription.getReferenceValue();
-		
+		int nextUpperPowerOfTwo = 1 << ((int)Math.ceil( (Math.log(upperBound) / Math.log(2) )) );
 		Link link= new Link(subLink.getSrc(), subLink.getSrcPort(), subLink.getDst(), subLink.getDstPort(), subLink.getLatency());
-		LessEqualAction actionHigher = new LessEqualAction(ACTION.REMOVE_LINK_FOR_NEXT_RANGE, upperBound, link, subscription);
+		LessEqualAction actionHigher = new LessEqualAction(ACTION.REMOVE_LINK_FOR_NEXT_RANGE, nextUpperPowerOfTwo, link, subscription);
 		LessEqualAction actionAtZero = new LessEqualAction(ACTION.ADD_LINK_FOR_NEXT_RANGE, 0, link, subscription);
 		List<LessEqualAction> leActions = new ArrayList<LessEqualAction> ();
 		leActions.add(actionAtZero);

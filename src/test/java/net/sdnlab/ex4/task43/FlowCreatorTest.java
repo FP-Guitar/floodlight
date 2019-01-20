@@ -76,7 +76,7 @@ public class FlowCreatorTest {
 		FlowCreator flowCreator = new FlowCreator( new FactoryProvider() );
 		List<FlowMod> flowMods = flowCreator.createFlowMods(links);
 		assertEquals(  3,flowMods.size());	
-		assertEquals( "OFMatchV3Ver13(eth_type=0x800, ip_proto=0x11, ipv4_dst=230.1.0.0/255.255.255.240)", flowMods.get(0).getMatch().toString());
+		assertEquals( "OFMatchV3Ver13(eth_type=0x800, ip_proto=0x11, ipv4_dst=230.1.0.0/255.255.255.224)", flowMods.get(0).getMatch().toString());
 		assertEquals("[OFActionOutputVer13(port=1, maxLen=-1)]", flowMods.get(0).getActionList().toString());
 		assertEquals( "OFMatchV3Ver13(eth_type=0x800, ip_proto=0x11, ipv4_dst=230.1.0.0/255.255.255.128)", flowMods.get(1).getMatch().toString());
 		assertEquals("[]", flowMods.get(1).getActionList().toString());

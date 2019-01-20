@@ -10,7 +10,6 @@ import org.projectfloodlight.openflow.types.IPv4Address;
 import org.projectfloodlight.openflow.types.OFPort;
 import org.projectfloodlight.openflow.types.U64;
 
-import net.floodlightcontroller.linkdiscovery.Link;
 
 public class SubscriptionLinkProvider {
 	Map<IPv4Address, ArrayList<SubscriptionLink>> links;

@@ -59,7 +59,7 @@ public class SubscriptionLinkConverterTest {
 		
 		assertEquals( 0, le1.getUpperBound() );
 		assertEquals( LessEqualAction.ACTION.ADD_LINK_FOR_NEXT_RANGE, le1.getAction());
-		assertEquals( 30, le2.getUpperBound() );
+		assertEquals( 32, le2.getUpperBound() );
 		assertEquals( LessEqualAction.ACTION.REMOVE_LINK_FOR_NEXT_RANGE, le2.getAction());
 		assertEquals( 128, le3.getUpperBound() );
 		assertEquals( LessEqualAction.ACTION.ADD_LINK_FOR_NEXT_RANGE, le3.getAction());	
@@ -90,7 +90,7 @@ public class SubscriptionLinkConverterTest {
 		
 		assertEquals( LessEqualAction.ACTION.ADD_LINK_FOR_NEXT_RANGE, le1.getAction());
 		assertEquals( "Link [src=00:00:00:00:00:00:00:02 outPort=4, dst=ff:00:00:00:00:00:00:02, inPort=5, latency=1]",le1.getLinkToAdd().toString());
-		assertEquals( 30, le2.getUpperBound() );
+		assertEquals( 32, le2.getUpperBound() );
 		assertEquals( LessEqualAction.ACTION.REMOVE_LINK_FOR_NEXT_RANGE, le2.getAction());
 		assertEquals( 128, le3.getUpperBound() );
 		assertEquals( LessEqualAction.ACTION.ADD_LINK_FOR_NEXT_RANGE, le3.getAction());	

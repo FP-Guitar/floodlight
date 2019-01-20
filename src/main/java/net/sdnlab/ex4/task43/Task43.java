@@ -3,10 +3,10 @@ package net.sdnlab.ex4.task43;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
+
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+
 
 import org.projectfloodlight.openflow.protocol.OFFactory;
 import org.projectfloodlight.openflow.protocol.OFFlowAdd;
@@ -26,10 +26,10 @@ import net.floodlightcontroller.core.module.FloodlightModuleContext;
 import net.floodlightcontroller.core.module.FloodlightModuleException;
 import net.floodlightcontroller.core.module.IFloodlightModule;
 import net.floodlightcontroller.core.module.IFloodlightService;
-import net.floodlightcontroller.linkdiscovery.Link;
+
 import net.floodlightcontroller.restserver.IRestApiService;
-import net.sdnlab.ex2.Task23Worker;
-import net.sdnlab.ex4.task43.Subscription.TYPE;
+
+
 
 
 public class Task43 implements IFloodlightModule, ITask43Service, IOFFactoryProvider {
@@ -43,7 +43,6 @@ public class Task43 implements IFloodlightModule, ITask43Service, IOFFactoryProv
 	protected static Logger logger;
 	private HashMap<String,Subscription> mySubscriptions;
 	private HashMap<DatapathId, ArrayList<SubscriptionLink>> switches;
-	private SubscriptionLinkConverter linkConverter;
 	private SubscriptionLinkProvider linkProvider;
 	private FlowCreator flowCreator;
 	@Override
@@ -80,7 +79,6 @@ public class Task43 implements IFloodlightModule, ITask43Service, IOFFactoryProv
 
 		logger = LoggerFactory.getLogger(Task43.class);
 		mySubscriptions = new HashMap<String,Subscription>();
-		linkConverter = new SubscriptionLinkConverter();
 		resetSwitches();
 		this.linkProvider = new SubscriptionLinkProvider();
 		this.flowCreator = new FlowCreator(this);
@@ -137,13 +135,8 @@ public class Task43 implements IFloodlightModule, ITask43Service, IOFFactoryProv
 	}
 	private void updateFlows() {
 		resetSwitches();
-		for( DatapathId id: this.switches.keySet() ) {
-			IOFSwitch sw = this.switchService.getSwitch(id);
-			if( sw != null ) {
-				boolean success = removeSubFlows(sw);
-				logger.info("Cleared switch :" + id +" " + success);
-			}
-		}
+		removeFlowFromSwitches();
+		
 		for( Map.Entry<String, Subscription> entry: mySubscriptions.entrySet() ) {
 			Subscription sub= entry.getValue();
 			List<SubscriptionLink> pathToSubscription = linkProvider.getLinks(sub.getDestinationAddress());
@@ -156,6 +149,16 @@ public class Task43 implements IFloodlightModule, ITask43Service, IOFFactoryProv
 		for( Map.Entry<DatapathId, ArrayList<SubscriptionLink>> entry : this.switches.entrySet()) {		
 			List<FlowMod> mods = flowCreator.createFlowMods(entry.getValue());
 			processFlowMods( mods );
+		}
+	}
+	
+	private void removeFlowFromSwitches() {
+		for( DatapathId id: this.switches.keySet() ) {
+			IOFSwitch sw = this.switchService.getSwitch(id);
+			if( sw != null ) {
+				boolean success = removeSubFlows(sw);
+				logger.info("Cleared switch :" + id +" " + success);
+			}
 		}
 	}
 	

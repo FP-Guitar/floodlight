@@ -2,7 +2,6 @@ package net.sdnlab.ex4.task43;
 
 import org.projectfloodlight.openflow.types.IPv4Address;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class Subscription {
 	public static enum OPERATOR {
