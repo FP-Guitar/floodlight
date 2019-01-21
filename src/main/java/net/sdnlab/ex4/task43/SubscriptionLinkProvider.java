@@ -89,5 +89,9 @@ public class SubscriptionLinkProvider {
 		}
 		return links;
 	}
+	
+	public boolean knowsTarget( IPv4Address ip) {
+		return this.links.containsKey(ip);
+	}
 
 }

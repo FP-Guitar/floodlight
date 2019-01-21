@@ -124,9 +124,13 @@ public class Task43 implements IFloodlightModule, ITask43Service, IOFFactoryProv
 		if( mySubscriptions.containsKey(subscription.getName()) ) {
 			status = "Dupcliate failure " + subscription.getName();
 		} else {
-			mySubscriptions.put(subscription.getName(), subscription);
-			updateFlows();
-			status = "Successfully added new subscription " + subscription.getName();
+			if( this.linkProvider.knowsTarget(subscription.getDestinationAddress() ) ){
+				mySubscriptions.put(subscription.getName(), subscription);
+				updateFlows();
+				status = "Successfully added new subscription " + subscription.getName();
+			} else {
+				status = "Target ip is not known to controller";
+			}
 		}
 
 		

@@ -43,6 +43,7 @@ public class Task43StaticFlows extends Task3xStaticFlows {
 				success  = success && updateSwitchWithPriority( switchToUpdate, IPv4Address.of("10.1.1.3"), 4, 32767);
 				success  = success && updateSwitchWithPriority( switchToUpdate, IPv4Address.of("10.1.1.4"), 5, 32767);
 				success  = success && updateSwitchWithPriority( switchToUpdate, IPv4Address.of("10.1.1.2"), 2, 32767);			
+				success  = success && updateSwitchWithPriority( switchToUpdate, IPv4Address.of("10.10.10.10"), 1, 32767);
 				return success;
 			}
 		});
@@ -52,7 +53,8 @@ public class Task43StaticFlows extends Task3xStaticFlows {
 			public boolean update(IOFSwitch switchToUpdate) {
 				boolean success = true;
 				success  = success && updateSwitchWithPriority( switchToUpdate, IPv4AddressWithMask.of("10.0.0.0/8"), 1, 32766);
-				success  = success && updateSwitchWithPriority( switchToUpdate, IPv4Address.of("10.1.1.2"), 2, 32767);			
+				success  = success && updateSwitchWithPriority( switchToUpdate, IPv4Address.of("10.1.1.2"), 2, 32767);	
+				success  = success && updateSwitchWithPriority( switchToUpdate, IPv4Address.of("10.10.10.10"), 1, 32767);
 				return success;
 			}
 		});
